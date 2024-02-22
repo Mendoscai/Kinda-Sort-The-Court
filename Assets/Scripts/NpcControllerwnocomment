@@ -1,0 +1,116 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class NpcController : MonoBehaviour
+{
+    public GameObject Chef;
+    public GameObject Peasant;
+    public GameObject Princess;
+    public GameObject Maester;
+
+    public DialogueManager dialogueManager;
+    public Dialogue chefDialogue;
+    public Dialogue peasantDialogue;
+    public Dialogue princessDialogue;
+    public Dialogue maesterDialogue;
+    public Dictionary<GameObject, Dialogue> npcDialogues;
+    public Button nextButton;
+
+
+    public List<GameObject> allNpcs;
+    private List<GameObject> npcs;
+    public float speed = 5.0f;
+    private GameObject currentNPC;
+    private Vector3 initialPosition;
+    private Vector3 targetPosition;
+    private bool shouldMove = false;
+
+    void Start()
+    {
+        npcDialogues = new Dictionary<GameObject, Dialogue>
+        {
+            { Chef, chefDialogue },
+            { Peasant, peasantDialogue },
+            { Princess, princessDialogue },
+            { Maester, maesterDialogue }
+        };
+
+        npcs = new List<GameObject>(allNpcs);
+
+        nextButton.onClick.AddListener(SelectNPC);
+    }
+
+    void Update()
+    {
+        if (shouldMove || (dialogueManager.dialogueBox.activeInHierarchy && currentNPC != null))
+        {
+            nextButton.interactable = false;
+        }
+        else
+        {
+            nextButton.interactable = true;
+        }
+
+        if (shouldMove && currentNPC != null)
+        {
+            currentNPC.transform.position = Vector3.MoveTowards(currentNPC.transform.position, targetPosition, speed * Time.deltaTime);
+
+            if (currentNPC.transform.position == targetPosition && targetPosition != initialPosition)
+            {
+                shouldMove = false;
+                currentNPC.GetComponent<Animator>().SetBool("walk", false);
+
+                Dialogue npcDialogue = npcDialogues[currentNPC];
+                dialogueManager.StartDialogue(npcDialogue);
+            }
+            else if (currentNPC.transform.position == initialPosition)
+            {
+                shouldMove = false;
+                currentNPC = null;
+            }
+        }
+    }
+
+
+    public void SelectNPC()
+    {
+
+
+        if (npcs.Count == 0)
+        {
+            npcs = new List<GameObject>(allNpcs);
+        }
+
+        else if (nextButton.interactable && npcs.Count > 0)
+        {
+            int index = Random.Range(0, npcs.Count);
+            currentNPC = npcs[index];
+            npcs.RemoveAt(index);
+
+            initialPosition = currentNPC.transform.position;
+            targetPosition = new Vector3(2.0f, currentNPC.transform.position.y, currentNPC.transform.position.z);
+
+            if (currentNPC != null)
+            {
+                currentNPC.transform.localScale = new Vector3(1, 1, 1);
+                shouldMove = true;
+                currentNPC.GetComponent<Animator>().SetBool("walk", true);
+                nextButton.gameObject.SetActive(false);
+            }
+        }
+    }
+
+
+
+    public void ReturnNPC()
+    {
+        targetPosition = initialPosition;
+        currentNPC.transform.localScale = new Vector3(-1, 1, 1);
+        shouldMove = true;
+        currentNPC.GetComponent<Animator>().SetBool("walk", true);
+        nextButton.gameObject.SetActive(true);
+    }
+
+}
